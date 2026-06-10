@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador de Dívidas — Livre das Dívidas</title>
+<style>
+  /* ─── TOKENS ─────────────────────────────────────────────────────── */
+  :root {
+    --bg:          #0a0d12;
+    --surface:     #111620;
+    --surface2:    #161d2a;
+    --border:      #1e2a3a;
+    --border2:     #243040;
+    --accent:      #00c896;
+    --accent-dim:  #009e77;
+    --accent-glow: rgba(0,200,150,.15);
+    --gold:        #f0b429;
+    --gold-dim:    #c8911a;
+    --danger:      #ff5c5c;
+    --warn:        #ffb84d;
+    --text:        #e8edf5;
+    --text2:       #7a8fa6;
+    --text3:       #4a5a6e;
+    --radius:      14px;
+    --radius-sm:   8px;
+    --shadow:      0 4px 24px rgba(0,0,0,.4);
+    --font:        'Inter', system-ui, sans-serif;
+  }
+
+  /* ─── RESET ──────────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  button { cursor: pointer; font-family: inherit; }
+  input, select, textarea { font-family: inherit; }
+
+  /* ─── LAYOUT ─────────────────────────────────────────────────────── */
+  .app-wrapper { max-width: 1100px; margin: 0 auto; padding: 0 16px 80px; }
+
+  /* ─── HEADER ─────────────────────────────────────────────────────── */
+  .header {
+    padding: 28px 0 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 28px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .header-left {}
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -.4px;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .tagline {
+    font-size: 13px;
+    color: var(--text2);
+    max-width: 480px;
+  }
+  .badge-free {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg,#1a2e1a,#0f2016);
+    border: 1px solid var(--accent-dim);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 30px;
+    white-space: nowrap;
+    align-self: flex-start;
+  }
+  .badge-free s { color: var(--text3); font-weight: 400; }
+
+  /* ─── MOTIVATIONAL BANNER ────────────────────────────────────────── */
+  .motivation-banner {
+    background: linear-gradient(135deg, #0d1f18, #111a28);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 14px 20px;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .motivation-banner span:first-child { font-size: 20px; flex-shrink: 0; }
+  .motivation-text { font-size: 14px; color: var(--text2); font-style: italic; }
+  .motivation-text strong { color: var(--accent); font-style: normal; }
+
+  /* ─── DISCLAIMER ─────────────────────────────────────────────────── */
+  .disclaimer {
+    font-size: 12px;
+    color: var(--text3);
+    text-align: center;
+    padding: 10px;
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    margin-bottom: 28px;
+    border: 1px solid var(--border);
+  }
+
+  /* ─── SECTION TITLE ──────────────────────────────────────────────── */
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text3);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ─── DASHBOARD CARDS ────────────────────────────────────────────── */
+  .dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+  .dash-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 16px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+  .dash-card:hover { border-color: var(--border2); }
+  .dash-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent-color, var(--border));
+  }
+  .dash-card.green  { --accent-color: var(--accent); }
+  .dash-card.gold   { --accent-color: var(--gold); }
+  .dash-card.danger { --accent-color: var(--danger); }
+  .dash-card.blue   { --accent-color: #4d9fff; }
+  .dash-card.purple { --accent-color: #a47fff; }
+  .dash-card.teal   { --accent-color: #00c8c8; }
+  .dash-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text3);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dash-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -.5px;
+    line-height: 1.1;
+  }
+  .dash-value.accent { color: var(--accent); }
+  .dash-value.gold   { color: var(--gold); }
+  .dash-value.danger { color: var(--danger); }
+  .dash-sub {
+    font-size: 12px;
+    color: var(--text3);
+    margin-top: 4px;
+  }
+
+  /* ─── PANELS (2-col) ─────────────────────────────────────────────── */
+  .panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 28px;
+  }
+  @media (max-width: 720px) { .panels { grid-template-columns: 1fr; } }
+
+  /* ─── PANEL ──────────────────────────────────────────────────────── */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+  .panel-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ─── FORM ───────────────────────────────────────────────────────── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 500px) { .form-grid { grid-template-columns: 1fr; } }
+  .form-field { display: flex; flex-direction: column; gap: 6px; }
+  .form-field.full { grid-column: 1 / -1; }
+  .form-field label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: .6px;
+  }
+  .form-field input,
+  .form-field select,
+  .form-field textarea {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 14px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+    width: 100%;
+  }
+  .form-field textarea { resize: vertical; min-height: 64px; }
+  .form-field input:focus,
+  .form-field select:focus,
+  .form-field textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  .form-field input::placeholder,
+  .form-field textarea::placeholder { color: var(--text3); }
+  .form-field select option { background: var(--surface2); }
+  .form-actions { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+
+  /* ─── BUTTONS ────────────────────────────────────────────────────── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 20px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    transition: transform .15s, opacity .15s, box-shadow .2s;
+    white-space: nowrap;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); opacity: .85; }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+    color: #000;
+    box-shadow: 0 4px 16px rgba(0,200,150,.25);
+  }
+  .btn-primary:hover { box-shadow: 0 6px 20px rgba(0,200,150,.35); }
+  .btn-gold {
+    background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+    color: #000;
+    box-shadow: 0 4px 16px rgba(240,180,41,.2);
+  }
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text2);
+  }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger {
+    background: transparent;
+    border: 1px solid #3a1a1a;
+    color: var(--danger);
+  }
+  .btn-danger:hover { background: rgba(255,92,92,.08); }
+  .btn-sm { padding: 7px 14px; font-size: 12px; }
+  .btn-icon { padding: 7px 10px; }
+
+  /* ─── METHOD SELECTOR ────────────────────────────────────────────── */
+  .method-selector {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 28px;
+  }
+  .method-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .method-options { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .method-btn {
+    flex: 1;
+    min-width: 200px;
+    padding: 16px 20px;
+    border-radius: var(--radius-sm);
+    border: 2px solid var(--border);
+    background: var(--surface2);
+    color: var(--text2);
+    font-size: 14px;
+    font-weight: 600;
+    text-align: left;
+    transition: all .2s;
+    cursor: pointer;
+  }
+  .method-btn:hover { border-color: var(--border2); color: var(--text); }
+  .method-btn.active-avalanche { border-color: var(--gold); color: var(--gold); background: rgba(240,180,41,.06); }
+  .method-btn.active-snowball  { border-color: #4d9fff;    color: #4d9fff;    background: rgba(77,159,255,.06); }
+  .method-btn-label { font-size: 16px; margin-bottom: 4px; }
+  .method-btn-desc  { font-size: 12px; font-weight: 400; color: var(--text3); line-height: 1.4; }
+  .method-btn.active-avalanche .method-btn-desc { color: #b8891a; }
+  .method-btn.active-snowball  .method-btn-desc { color: #2a6aaa; }
+
+  /* ─── EXTRA PAYMENT ──────────────────────────────────────────────── */
+  .extra-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .extra-row .form-field { flex: 1; min-width: 160px; }
+  .extra-row .form-field label { margin-bottom: 6px; }
+
+  /* ─── DEBT LIST ──────────────────────────────────────────────────── */
+  .debt-list { display: flex; flex-direction: column; gap: 14px; }
+  .debt-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    position: relative;
+    transition: border-color .2s, transform .2s;
+    overflow: hidden;
+  }
+  .debt-card:hover { border-color: var(--border2); transform: translateY(-1px); }
+  .debt-card.paid { border-color: var(--accent); }
+  .debt-card.paid::after {
+    content: '✅ QUITADA';
+    position: absolute;
+    top: 14px; right: 14px;
+    background: var(--accent);
+    color: #000;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 1px;
+  }
+  .debt-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .debt-card-info {}
+  .debt-name { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .debt-meta { font-size: 12px; color: var(--text3); display: flex; gap: 14px; flex-wrap: wrap; }
+  .debt-meta span { display: flex; align-items: center; gap: 4px; }
+  .debt-card-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .debt-order-badge {
+    position: absolute;
+    top: 0; left: 0;
+    background: var(--accent);
+    color: #000;
+    font-size: 11px;
+    font-weight: 700;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border-bottom-right-radius: 8px;
+  }
+  .debt-order-badge.gold { background: var(--gold); }
+  .debt-card-numbers {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .debt-number { }
+  .debt-number-label { font-size: 11px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 3px; }
+  .debt-number-value { font-size: 16px; font-weight: 700; color: var(--text); }
+  .debt-number-value.accent { color: var(--accent); }
+  .debt-number-value.danger { color: var(--danger); }
+  .debt-number-value.warn   { color: var(--warn); }
+  .debt-number-value.gold   { color: var(--gold); }
+
+  /* ─── PROGRESS BAR ───────────────────────────────────────────────── */
+  .progress-wrap { margin-top: 4px; }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text3);
+    margin-bottom: 6px;
+  }
+  .progress-track {
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 10px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-dim));
+    transition: width .6s cubic-bezier(.4,0,.2,1);
+  }
+  .progress-fill.full { background: linear-gradient(90deg, var(--accent), #00ff9d); }
+
+  /* ─── EMPTY STATE ────────────────────────────────────────────────── */
+  .empty-state {
+    text-align: center;
+    padding: 60px 24px;
+    color: var(--text3);
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: .5; }
+  .empty-title { font-size: 18px; font-weight: 600; color: var(--text2); margin-bottom: 8px; }
+  .empty-desc  { font-size: 14px; line-height: 1.6; }
+
+  /* ─── COMPARISON TABLE ───────────────────────────────────────────── */
+  .compare-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .compare-table th {
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--text3);
+    border-bottom: 1px solid var(--border);
+  }
+  .compare-table td {
+    padding: 12px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text2);
+  }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table .highlight td { color: var(--text); font-weight: 600; }
+  .tag-winner {
+    display: inline-block;
+    background: rgba(0,200,150,.15);
+    color: var(--accent);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: .5px;
+    margin-left: 6px;
+  }
+
+  /* ─── CHART ──────────────────────────────────────────────────────── */
+  .chart-area { position: relative; }
+  .chart-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .chart-row { display: flex; align-items: center; gap: 10px; }
+  .chart-name { width: 120px; font-size: 12px; color: var(--text2); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0; }
+  .chart-track { flex: 1; height: 24px; background: var(--surface2); border-radius: 6px; overflow: hidden; position: relative; }
+  .chart-bar {
+    height: 100%;
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-dim));
+    display: flex; align-items: center; padding-left: 8px;
+    font-size: 11px; font-weight: 600; color: #000;
+    transition: width .8s cubic-bezier(.4,0,.2,1);
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .chart-bar.gold { background: linear-gradient(90deg, var(--gold), var(--gold-dim)); }
+  .chart-months { width: 40px; font-size: 11px; color: var(--text3); flex-shrink: 0; }
+
+  /* ─── TOAST / ALERT ──────────────────────────────────────────────── */
+  .toast-container {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+  }
+  .toast {
+    pointer-events: all;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+    font-size: 14px;
+    color: var(--text);
+    box-shadow: var(--shadow);
+    max-width: 320px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: slideIn .3s ease;
+  }
+  .toast.error  { border-left-color: var(--danger); }
+  .toast.warn   { border-left-color: var(--warn); }
+  .toast.info   { border-left-color: #4d9fff; }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(40px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes slideOut {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(40px); }
+  }
+
+  /* ─── MODAL ──────────────────────────────────────────────────────── */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,.7);
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px;
+    backdrop-filter: blur(4px);
+    animation: fadeIn .2s ease;
+  }
+  .modal-overlay.hidden { display: none; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 28px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: popIn .2s ease;
+  }
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(.95) translateY(10px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; flex-wrap: wrap; }
+
+  /* ─── CONFIRM DIALOG ─────────────────────────────────────────────── */
+  .confirm-body { font-size: 15px; color: var(--text2); line-height: 1.6; }
+  .confirm-body strong { color: var(--text); }
+
+  /* ─── CELEBRATION OVERLAY ────────────────────────────────────────── */
+  .celebration {
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 9998;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .celebration-text {
+    font-size: 28px; font-weight: 700;
+    color: var(--accent);
+    text-shadow: 0 0 40px rgba(0,200,150,.6);
+    animation: celebPop .8s ease forwards;
+    text-align: center;
+    line-height: 1.3;
+  }
+  @keyframes celebPop {
+    0%   { opacity: 0; transform: scale(.5); }
+    40%  { opacity: 1; transform: scale(1.1); }
+    70%  { transform: scale(.95); }
+    85%  { transform: scale(1); opacity: 1; }
+    100% { opacity: 0; transform: scale(1.05) translateY(-20px); }
+  }
+
+  /* ─── CONFETTI PARTICLE ──────────────────────────────────────────── */
+  .confetti-particle {
+    position: fixed;
+    width: 8px; height: 8px;
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 9997;
+    animation: confettiFall 1.4s ease-in forwards;
+  }
+  @keyframes confettiFall {
+    0%   { opacity: 1; transform: translateY(0) rotate(0deg); }
+    100% { opacity: 0; transform: translateY(300px) rotate(720deg); }
+  }
+
+  /* ─── RESPONSIVE TWEAKS ──────────────────────────────────────────── */
+  @media (max-width: 600px) {
+    .dashboard { grid-template-columns: 1fr 1fr; }
+    .debt-card-numbers { grid-template-columns: 1fr 1fr; }
+    .method-btn { min-width: 100%; }
+    .chart-name { width: 80px; }
+  }
+
+  /* ─── SCROLLBAR ──────────────────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- ═══ TOAST CONTAINER ═══════════════════════════════════════════════ -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ═══ CELEBRATION ═══════════════════════════════════════════════════ -->
+<div class="celebration hidden" id="celebration">
+  <div class="celebration-text">🎉 Dívida Quitada!<br><small style="font-size:16px;color:#7a8fa6">Continue assim — você está no caminho certo!</small></div>
+</div>
+
+<!-- ═══ CONFIRM MODAL ════════════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="confirmModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">⚠️ Confirmação</div>
+    <p class="confirm-body" id="confirmBody">Tem certeza?</p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeConfirm()">Cancelar</button>
+      <button class="btn btn-danger" id="confirmOkBtn">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ EDIT MODAL ═══════════════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="editModal">
+  <div class="modal">
+    <div class="modal-title">✏️ Editar Dívida</div>
+    <div class="form-grid" id="editFormGrid">
+      <!-- filled by JS -->
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeEdit()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEdit()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MAIN APP ══════════════════════════════════════════════════════ -->
+<div class="app-wrapper">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">
+        <div class="logo-icon">💸</div>
+        Simulador de Dívidas
+      </div>
+      <p class="tagline">Cadastre suas dívidas e veja o caminho mais rápido para a liberdade financeira — Avalanche ou Bola de Neve.</p>
+    </div>
+    <div class="badge-free">✨ Grátis por 7 dias &nbsp;<s>R$37/mês</s></div>
+  </header>
+
+  <!-- MOTIVATIONAL BANNER -->
+  <div class="motivation-banner">
+    <span id="motivIcon">💬</span>
+    <p class="motivation-text" id="motivText">Carregando frase...</p>
+  </div>
+
+  <!-- DASHBOARD -->
+  <p class="section-title">📊 Visão geral</p>
+  <div class="dashboard">
+    <div class="dash-card danger">
+      <div class="dash-label">💳 Total em dívidas</div>
+      <div class="dash-value danger" id="dTotalDebt">R$ 0,00</div>
+      <div class="dash-sub" id="dDebtCount">0 dívidas</div>
+    </div>
+    <div class="dash-card green">
+      <div class="dash-label">✅ Total já pago</div>
+      <div class="dash-value accent" id="dTotalPaid">R$ 0,00</div>
+      <div class="dash-sub" id="dPaidPct">0% quitado</div>
+    </div>
+    <div class="dash-card gold">
+      <div class="dash-label">⏳ Restante a pagar</div>
+      <div class="dash-value gold" id="dTotalRemaining">R$ 0,00</div>
+      <div class="dash-sub" id="dInterestTotal">Juros: R$ 0,00</div>
+    </div>
+    <div class="dash-card blue">
+      <div class="dash-label">📅 Tempo p/ quitar</div>
+      <div class="dash-value" id="dTimeToFree" style="color:#4d9fff">—</div>
+      <div class="dash-sub" id="dTimeMethod">sem dívidas</div>
+    </div>
+    <div class="dash-card purple">
+      <div class="dash-label">🏆 Melhor método</div>
+      <div class="dash-value" id="dBestMethod" style="color:#a47fff">—</div>
+      <div class="dash-sub" id="dBestDesc">—</div>
+    </div>
+    <div class="dash-card teal">
+      <div class="dash-label">💰 Economia c/ extra</div>
+      <div class="dash-value" id="dExtraSavings" style="color:#00c8c8">R$ 0,00</div>
+      <div class="dash-sub" id="dExtraMonths">com parcela extra</div>
+    </div>
+  </div>
+
+  <!-- METHOD + EXTRA PAYMENT -->
+  <div class="method-selector">
+    <div class="method-title">⚡ Estratégia de pagamento</div>
+    <div class="method-options">
+      <button class="method-btn active-avalanche" id="btnAvalanche" onclick="setMethod('avalanche')">
+        <div class="method-btn-label">🌋 Avalanche</div>
+        <div class="method-btn-desc">Paga primeiro a dívida com <strong>maior juros</strong>. Economiza mais dinheiro no longo prazo.</div>
+      </button>
+      <button class="method-btn" id="btnSnowball" onclick="setMethod('snowball')">
+        <div class="method-btn-label">⛄ Bola de Neve</div>
+        <div class="method-btn-desc">Paga primeiro a dívida com <strong>menor saldo</strong>. Mais motivação psicológica e vitórias rápidas.</div>
+      </button>
+    </div>
+    <div class="extra-row">
+      <div class="form-field">
+        <label>💵 Parcela extra mensal (R$)</label>
+        <input type="number" id="extraPayment" placeholder="Ex: 200,00" min="0" step="0.01" oninput="renderAll()">
+      </div>
+      <div class="form-field" style="max-width:180px">
+        <label>ℹ️ Economia estimada</label>
+        <input type="text" id="extraSavingDisplay" readonly placeholder="—" style="background:var(--bg); color:var(--accent); font-weight:700; cursor:default;">
+      </div>
+    </div>
+  </div>
+
+  <!-- TWO-COLUMN PANELS: ADD FORM + COMPARISON -->
+  <div class="panels">
+
+    <!-- ADD DEBT FORM -->
+    <div class="panel">
+      <div class="panel-title">➕ Adicionar dívida</div>
+      <div class="form-grid">
+        <div class="form-field full">
+          <label>Nome da dívida *</label>
+          <input type="text" id="fName" placeholder="Ex: Cartão Nubank, Empréstimo Caixa…">
+        </div>
+        <div class="form-field">
+          <label>Valor total (R$) *</label>
+          <input type="number" id="fTotal" placeholder="5000,00" min="0" step="0.01">
+        </div>
+        <div class="form-field">
+          <label>Valor já pago (R$)</label>
+          <input type="number" id="fPaid" placeholder="0,00" min="0" step="0.01">
+        </div>
+        <div class="form-field">
+          <label>Juros mensal (%) *</label>
+          <input type="number" id="fRate" placeholder="3,50" min="0" step="0.01">
+        </div>
+        <div class="form-field">
+          <label>Parcela mensal (R$) *</label>
+          <input type="number" id="fInstallment" placeholder="300,00" min="0" step="0.01">
+        </div>
+        <div class="form-field">
+          <label>Data de vencimento</label>
+          <input type="date" id="fDueDate">
+        </div>
+        <div class="form-field">
+          <label>Categoria</label>
+          <select id="fCategory">
+            <option value="cartão">💳 Cartão de crédito</option>
+            <option value="emprestimo">🏦 Empréstimo</option>
+            <option value="financiamento">🏠 Financiamento</option>
+            <option value="cheque">📄 Cheque especial</option>
+            <option value="pessoal">👤 Dívida pessoal</option>
+            <option value="outro">📌 Outro</option>
+          </select>
+        </div>
+        <div class="form-field full">
+          <label>Observação (opcional)</label>
+          <textarea id="fNote" placeholder="Ex: parcelas do celular, renegociado em jan/24…"></textarea>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="addDebt()">➕ Adicionar dívida</button>
+        <button class="btn btn-outline" onclick="clearForm()">🗑️ Limpar</button>
+      </div>
+    </div>
+
+    <!-- COMPARISON -->
+    <div class="panel">
+      <div class="panel-title">⚖️ Avalanche vs Bola de Neve</div>
+      <div id="compareSection">
+        <div class="empty-state" style="padding:40px 16px">
+          <div class="empty-icon">📊</div>
+          <div class="empty-title">Sem dados ainda</div>
+          <div class="empty-desc">Adicione suas dívidas para ver a comparação entre os dois métodos.</div>
+        </div>
+      </div>
+
+      <div style="margin-top:24px">
+        <div class="panel-title" style="margin-bottom:14px">📈 Progresso de quitação</div>
+        <div id="chartSection">
+          <div style="font-size:13px; color:var(--text3); text-align:center; padding:20px 0">Adicione dívidas para ver o gráfico.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- DEBT LIST -->
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px">
+    <p class="section-title" style="margin-bottom:0; flex:1">📋 Suas dívidas</p>
+    <div style="display:flex; gap:10px; flex-wrap:wrap">
+      <button class="btn btn-outline btn-sm" onclick="exportData()">📤 Exportar JSON</button>
+      <button class="btn btn-danger btn-sm" onclick="confirmClearAll()">🗑️ Limpar tudo</button>
+    </div>
+  </div>
+  <div id="debtList">
+    <div class="empty-state">
+      <div class="empty-icon">💳</div>
+      <div class="empty-title">Nenhuma dívida cadastrada</div>
+      <div class="empty-desc">Use o formulário acima para adicionar suas dívidas e<br>começar a planejar sua liberdade financeira.</div>
+    </div>
+  </div>
+
+  <!-- DISCLAIMER -->
+  <div class="disclaimer" style="margin-top:32px">
+    ⚠️ <strong>Aviso importante:</strong> Este simulador tem caráter exclusivamente educativo e informativo. Os cálculos são estimativas e não substituem a orientação de um profissional financeiro. Consulte um especialista antes de tomar decisões financeiras.
+  </div>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   SIMULADOR DE DÍVIDAS — lógica completa
+   ═══════════════════════════════════════════════════════════════════ */
+
+// ─── ESTADO ─────────────────────────────────────────────────────────
+let debts    = [];
+let method   = 'avalanche'; // 'avalanche' | 'snowball'
+let editId   = null;
+let confirmCallback = null;
+
+// ─── FRASES MOTIVACIONAIS ─────────────────────────────────────────
+const quotes = [
+  { icon: '🔥', text: '<strong>Cada real pago é um passo para a liberdade.</strong> O caminho começa com a primeira decisão.' },
+  { icon: '🎯', text: '<strong>Quem conhece suas dívidas, controla sua vida.</strong> Informação é o primeiro passo para a quitação.' },
+  { icon: '💡', text: '<strong>Dívida não é destino, é um problema com solução.</strong> Você está no lugar certo.' },
+  { icon: '🚀', text: '<strong>Pequeninhos passos geram grandes transformações.</strong> Foque no próximo pagamento.' },
+  { icon: '🌱', text: '<strong>Liberdade financeira começa com um plano.</strong> E você já está dando esse passo agora.' },
+  { icon: '⚡', text: '<strong>Juros trabalham contra você — mas um bom método trabalha a seu favor.</strong> Use-o com disciplina.' },
+  { icon: '🏆', text: '<strong>Você não está endividado para sempre.</strong> Com consistência, cada mês fica melhor.' },
+  { icon: '💪', text: '<strong>Saber quanto deve é a metade do caminho.</strong> Agora é planejar e executar.' },
+];
+
+function setMotivation() {
+  const q = quotes[Math.floor(Math.random() * quotes.length)];
+  document.getElementById('motivIcon').textContent  = q.icon;
+  document.getElementById('motivText').innerHTML    = q.text;
+}
+
+// ─── LOCAL STORAGE ────────────────────────────────────────────────
+function save()  { localStorage.setItem('simulador_dividas_v2', JSON.stringify(debts)); }
+function load()  {
+  const d = localStorage.getItem('simulador_dividas_v2');
+  if (d) try { debts = JSON.parse(d); } catch {}
+}
+
+// ─── UTILS ────────────────────────────────────────────────────────
+const fmt = (v) => v.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+const fmtN = (v, dec=2) => v.toLocaleString('pt-BR', { minimumFractionDigits:dec, maximumFractionDigits:dec });
+const uid  = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
+
+function monthsToText(m) {
+  if (!isFinite(m) || m <= 0) return '—';
+  const months = Math.ceil(m);
+  if (months >= 1200) return 'Nunca';
+  if (months < 12)  return `${months} ${months === 1 ? 'mês' : 'meses'}`;
+  const y = Math.floor(months / 12), mo = months % 12;
+  return mo === 0 ? `${y} ${y === 1 ? 'ano' : 'anos'}` : `${y}a ${mo}m`;
+}
+
+// Calcula meses e juros totais para quitar uma única dívida
+// balance: saldo devedor; rate: taxa mensal (0.035 = 3.5%); installment: parcela
+function calcDebt(balance, rate, installment) {
+  if (balance <= 0) return { months: 0, totalInterest: 0 };
+  if (rate === 0) {
+    const m = Math.ceil(balance / installment);
+    return { months: m, totalInterest: 0 };
+  }
+  if (installment <= balance * rate) {
+    // Parcela não cobre os juros — dívida nunca acaba
+    return { months: Infinity, totalInterest: Infinity };
+  }
+  // Fórmula do financiamento
+  const m = Math.log(installment / (installment - balance * rate)) / Math.log(1 + rate);
+  const totalInterest = installment * Math.ceil(m) - balance;
+  return { months: Math.ceil(m), totalInterest: Math.max(0, totalInterest) };
+}
+
+// ─── MÉTODO ───────────────────────────────────────────────────────
+function setMethod(m) {
+  method = m;
+  document.getElementById('btnAvalanche').className = 'method-btn' + (m==='avalanche' ? ' active-avalanche' : '');
+  document.getElementById('btnSnowball').className  = 'method-btn' + (m==='snowball'  ? ' active-snowball'  : '');
+  renderAll();
+}
+
+// ─── ORDENAÇÃO ────────────────────────────────────────────────────
+function sortedDebts(m, debtArr) {
+  const active = debtArr.filter(d => d.balance > 0);
+  const paid   = debtArr.filter(d => d.balance <= 0);
+  if (m === 'avalanche') active.sort((a,b) => b.rate - a.rate);
+  else                   active.sort((a,b) => a.balance - b.balance);
+  return [...active, ...paid];
+}
+
+// ─── SIMULAÇÃO DE QUITAÇÃO (método em cascata) ────────────────────
+// Simula quanto tempo para quitar todas as dívidas com distribuição em cascata.
+// Quando uma dívida é quitada, sua parcela é redirecionada para a próxima.
+function simulateCascade(debtArr, method, extraMonthly = 0) {
+  const active = debtArr
+    .filter(d => d.balance > 0)
+    .map(d => ({ ...d, balance: d.balance }));
+
+  if (active.length === 0) return { months: 0, totalInterest: 0 };
+
+  // Ordenar
+  if (method === 'avalanche') active.sort((a,b) => b.rate - a.rate);
+  else                        active.sort((a,b) => a.balance - b.balance);
+
+  let month = 0;
+  let totalInterest = 0;
+  const MAX_MONTHS = 600;
+  let extra = extraMonthly;
+
+  while (active.some(d => d.balance > 0) && month < MAX_MONTHS) {
+    month++;
+    let extraPool = extra;
+
+    for (let i = 0; i < active.length; i++) {
+      if (active[i].balance <= 0) continue;
+      const d = active[i];
+      const interest = d.balance * d.rate;
+      totalInterest += interest;
+      d.balance = d.balance + interest - d.installment - (i === 0 ? extraPool : 0);
+      if (d.balance < 0) {
+        // libera crédito restante para a próxima
+        extra = Math.abs(d.balance);
+        d.balance = 0;
+      } else {
+        extra = 0;
+      }
+    }
+
+    // Resetar extra base para o mês seguinte
+    extra = extraMonthly;
+  }
+
+  return { months: month, totalInterest };
+}
+
+// ─── EXTRAIR DADOS DO FORMULÁRIO ──────────────────────────────────
+function getFormData(prefix = 'f') {
+  const name        = document.getElementById(prefix+'Name')?.value.trim();
+  const total       = parseFloat(document.getElementById(prefix+'Total')?.value) || 0;
+  const paid        = parseFloat(document.getElementById(prefix+'Paid')?.value)  || 0;
+  const rate        = (parseFloat(document.getElementById(prefix+'Rate')?.value) || 0) / 100;
+  const installment = parseFloat(document.getElementById(prefix+'Installment')?.value) || 0;
+  const dueDate     = document.getElementById(prefix+'DueDate')?.value || '';
+  const category    = document.getElementById(prefix+'Category')?.value || 'outro';
+  const note        = document.getElementById(prefix+'Note')?.value.trim() || '';
+  const balance     = Math.max(0, total - paid);
+  return { name, total, paid, rate, installment, dueDate, category, note, balance };
+}
+
+// ─── VALIDAÇÃO ────────────────────────────────────────────────────
+function validate(d) {
+  if (!d.name)         return 'Informe o nome da dívida.';
+  if (d.total <= 0)    return 'Informe o valor total da dívida.';
+  if (d.installment <= 0) return 'Informe o valor da parcela mensal.';
+  return null;
+}
+
+// ─── ADICIONAR DÍVIDA ─────────────────────────────────────────────
+function addDebt() {
+  const d = getFormData('f');
+  const err = validate(d);
+  if (err) return showToast(err, 'error');
+
+  debts.push({ ...d, id: uid(), createdAt: new Date().toISOString() });
+  save();
+  renderAll();
+  clearForm();
+  showToast('✅ Dívida adicionada com sucesso!');
+}
+
+function clearForm() {
+  ['fName','fTotal','fPaid','fRate','fInstallment','fDueDate','fNote'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const cat = document.getElementById('fCategory');
+  if (cat) cat.value = 'cartão';
+}
+
+// ─── EXCLUIR DÍVIDA ───────────────────────────────────────────────
+function deleteDebt(id) {
+  const d = debts.find(x => x.id === id);
+  if (!d) return;
+  showConfirm(
+    `Deseja excluir a dívida <strong>"${d.name}"</strong>? Esta ação não pode ser desfeita.`,
+    () => {
+      debts = debts.filter(x => x.id !== id);
+      save(); renderAll();
+      showToast('🗑️ Dívida removida.', 'info');
+    }
+  );
+}
+
+// ─── LIMPAR TUDO ──────────────────────────────────────────────────
+function confirmClearAll() {
+  if (debts.length === 0) return showToast('Não há dívidas para limpar.', 'warn');
+  showConfirm(
+    `Tem certeza que deseja <strong>remover todas as ${debts.length} dívida(s)</strong>? Esta ação não pode ser desfeita.`,
+    () => { debts = []; save(); renderAll(); showToast('🗑️ Todas as dívidas foram removidas.', 'info'); }
+  );
+}
+
+// ─── EDITAR DÍVIDA ────────────────────────────────────────────────
+function openEdit(id) {
+  const d = debts.find(x => x.id === id);
+  if (!d) return;
+  editId = id;
+
+  document.getElementById('editFormGrid').innerHTML = `
+    <div class="form-field full">
+      <label>Nome da dívida *</label>
+      <input type="text" id="eName" value="${d.name}">
+    </div>
+    <div class="form-field">
+      <label>Valor total (R$) *</label>
+      <input type="number" id="eTotal" value="${d.total}" min="0" step="0.01">
+    </div>
+    <div class="form-field">
+      <label>Valor já pago (R$)</label>
+      <input type="number" id="ePaid" value="${d.paid}" min="0" step="0.01">
+    </div>
+    <div class="form-field">
+      <label>Juros mensal (%) *</label>
+      <input type="number" id="eRate" value="${(d.rate*100).toFixed(2)}" min="0" step="0.01">
+    </div>
+    <div class="form-field">
+      <label>Parcela mensal (R$) *</label>
+      <input type="number" id="eInstallment" value="${d.installment}" min="0" step="0.01">
+    </div>
+    <div class="form-field">
+      <label>Data de vencimento</label>
+      <input type="date" id="eDueDate" value="${d.dueDate}">
+    </div>
+    <div class="form-field">
+      <label>Categoria</label>
+      <select id="eCategory">
+        ${['cartão','emprestimo','financiamento','cheque','pessoal','outro'].map(c =>
+          `<option value="${c}" ${d.category===c?'selected':''}>${c}</option>`
+        ).join('')}
+      </select>
+    </div>
+    <div class="form-field full">
+      <label>Observação (opcional)</label>
+      <textarea id="eNote">${d.note||''}</textarea>
+    </div>
+  `;
+
+  document.getElementById('editModal').classList.remove('hidden');
+}
+
+function saveEdit() {
+  const d = getFormData('e');
+  const err = validate(d);
+  if (err) return showToast(err, 'error');
+  const idx = debts.findIndex(x => x.id === editId);
+  if (idx === -1) return;
+  debts[idx] = { ...debts[idx], ...d };
+  save(); renderAll(); closeEdit();
+  showToast('✅ Dívida atualizada!');
+}
+
+function closeEdit() {
+  document.getElementById('editModal').classList.add('hidden');
+  editId = null;
+}
+
+// ─── EXPORTAR JSON ────────────────────────────────────────────────
+function exportData() {
+  if (debts.length === 0) return showToast('Nenhuma dívida para exportar.', 'warn');
+  const blob = new Blob([JSON.stringify(debts, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'minhas-dividas.json';
+  a.click();
+  showToast('📤 Exportado com sucesso!');
+}
+
+// ─── RENDER PRINCIPAL ─────────────────────────────────────────────
+function renderAll() {
+  const extra = parseFloat(document.getElementById('extraPayment')?.value) || 0;
+
+  updateDashboard(extra);
+  renderDebtList(extra);
+  renderComparison(extra);
+  renderChart();
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────
+function updateDashboard(extra) {
+  const totalDebt      = debts.reduce((s,d) => s + d.total, 0);
+  const totalPaid      = debts.reduce((s,d) => s + d.paid, 0);
+  const totalRemaining = debts.reduce((s,d) => s + d.balance, 0);
+  const paidPct        = totalDebt > 0 ? (totalPaid / totalDebt * 100) : 0;
+
+  // Juros estimados (método atual, sem extra)
+  const simNoExtra = simulateCascade(debts, method, 0);
+  const simExtra   = simulateCascade(debts, method, extra);
+
+  // Melhor método
+  const simAv  = simulateCascade(debts, 'avalanche', extra);
+  const simSn  = simulateCascade(debts, 'snowball', extra);
+  const bestMethod = simAv.totalInterest <= simSn.totalInterest ? 'Avalanche 🌋' : 'Bola de Neve ⛄';
+  const bestDiff   = Math.abs(simAv.totalInterest - simSn.totalInterest);
+
+  // Economia com parcela extra
+  const savings = extra > 0
+    ? Math.max(0, simNoExtra.totalInterest - simExtra.totalInterest)
+    : 0;
+  const monthsSaved = extra > 0
+    ? Math.max(0, simNoExtra.months - simExtra.months)
+    : 0;
+
+  document.getElementById('dTotalDebt').textContent      = fmt(totalDebt);
+  document.getElementById('dDebtCount').textContent      = `${debts.length} ${debts.length===1?'dívida':'dívidas'}`;
+  document.getElementById('dTotalPaid').textContent      = fmt(totalPaid);
+  document.getElementById('dPaidPct').textContent        = `${fmtN(paidPct,1)}% quitado`;
+  document.getElementById('dTotalRemaining').textContent = fmt(totalRemaining);
+  document.getElementById('dInterestTotal').textContent  = `Juros est.: ${isFinite(simNoExtra.totalInterest) ? fmt(simNoExtra.totalInterest) : '∞'}`;
+  document.getElementById('dTimeToFree').textContent     = monthsToText(simExtra.months || simNoExtra.months);
+  document.getElementById('dTimeMethod').textContent     = debts.length > 0 ? `método ${method==='avalanche'?'avalanche':'bola de neve'}` : 'sem dívidas';
+  document.getElementById('dBestMethod').textContent     = debts.length > 0 ? bestMethod : '—';
+  document.getElementById('dBestDesc').textContent       = debts.length > 0 && isFinite(bestDiff) && bestDiff > 0
+    ? `Economiza ${fmt(bestDiff)} vs o outro`
+    : debts.length > 0 ? 'Resultados similares' : '—';
+  document.getElementById('dExtraSavings').textContent   = extra > 0 ? fmt(savings) : 'R$ 0,00';
+  document.getElementById('dExtraMonths').textContent    = extra > 0 && monthsSaved > 0
+    ? `${monthsSaved} ${monthsSaved===1?'mês':'meses'} a menos`
+    : extra > 0 ? 'sem diferença significativa' : 'adicione parcela extra';
+
+  // Campo display na seção de método
+  const el = document.getElementById('extraSavingDisplay');
+  if (el) el.value = extra > 0 && savings > 0 ? `Economiza ${fmt(savings)}` : extra > 0 ? 'Sem diferença' : '—';
+}
+
+// ─── LISTA DE DÍVIDAS ─────────────────────────────────────────────
+function renderDebtList(extra) {
+  const container = document.getElementById('debtList');
+  if (debts.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">💳</div>
+        <div class="empty-title">Nenhuma dívida cadastrada</div>
+        <div class="empty-desc">Use o formulário acima para adicionar suas dívidas e<br>começar a planejar sua liberdade financeira.</div>
+      </div>`;
+    return;
+  }
+
+  const sorted = sortedDebts(method, debts);
+
+  container.innerHTML = sorted.map((d, idx) => {
+    const isPaid    = d.balance <= 0;
+    const progress  = d.total > 0 ? Math.min(100, (d.paid / d.total) * 100) : 0;
+    const calc      = calcDebt(d.balance, d.rate, d.installment);
+    const orderNum  = isPaid ? null : idx + 1;
+
+    const dueDateStr = d.dueDate
+      ? new Date(d.dueDate + 'T00:00:00').toLocaleDateString('pt-BR')
+      : '—';
+
+    const catIcons = { cartão:'💳', emprestimo:'🏦', financiamento:'🏠', cheque:'📄', pessoal:'👤', outro:'📌' };
+    const catIcon  = catIcons[d.category] || '📌';
+
+    const hasInfinite = !isFinite(calc.months);
+
+    return `
+    <div class="debt-card ${isPaid ? 'paid' : ''}" id="card-${d.id}">
+      ${orderNum ? `<div class="debt-order-badge ${method==='snowball'?'':'gold'}">${orderNum}</div>` : ''}
+      <div class="debt-card-top">
+        <div class="debt-card-info" style="padding-left:${orderNum?'36px':'0'}">
+          <div class="debt-name">${catIcon} ${d.name}</div>
+          <div class="debt-meta">
+            <span>📅 Vence: ${dueDateStr}</span>
+            ${d.note ? `<span>📝 ${d.note}</span>` : ''}
+          </div>
+        </div>
+        <div class="debt-card-actions">
+          <button class="btn btn-outline btn-sm btn-icon" title="Editar" onclick="openEdit('${d.id}')">✏️</button>
+          <button class="btn btn-danger btn-sm btn-icon" title="Excluir" onclick="deleteDebt('${d.id}')">🗑️</button>
+        </div>
+      </div>
+
+      <div class="debt-card-numbers">
+        <div class="debt-number">
+          <div class="debt-number-label">Valor total</div>
+          <div class="debt-number-value">${fmt(d.total)}</div>
+        </div>
+        <div class="debt-number">
+          <div class="debt-number-label">Já pago</div>
+          <div class="debt-number-value accent">${fmt(d.paid)}</div>
+        </div>
+        <div class="debt-number">
+          <div class="debt-number-label">Saldo restante</div>
+          <div class="debt-number-value ${isPaid?'accent':'danger'}">${fmt(d.balance)}</div>
+        </div>
+        <div class="debt-number">
+          <div class="debt-number-label">Juros mensal</div>
+          <div class="debt-number-value warn">${fmtN(d.rate*100,2)}%</div>
+        </div>
+        <div class="debt-number">
+          <div class="debt-number-label">Parcela</div>
+          <div class="debt-number-value">${fmt(d.installment)}</div>
+        </div>
+        <div class="debt-number">
+          <div class="debt-number-label">Tempo p/ quitar</div>
+          <div class="debt-number-value gold">${isPaid ? '✅' : hasInfinite ? '⚠️ ∞' : monthsToText(calc.months)}</div>
+        </div>
+        <div class="debt-number">
+          <div class="debt-number-label">Juros estimados</div>
+          <div class="debt-number-value danger">${isPaid ? '—' : hasInfinite ? '⚠️ Parcela baixa' : fmt(calc.totalInterest)}</div>
+        </div>
+        <div class="debt-number">
+          <div class="debt-number-label">Total a pagar</div>
+          <div class="debt-number-value">${isPaid ? '—' : hasInfinite ? '—' : fmt(d.balance + calc.totalInterest)}</div>
+        </div>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress-label">
+          <span>Progresso de pagamento</span>
+          <span>${fmtN(progress,1)}%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill ${progress>=100?'full':''}" style="width:${progress}%"></div>
+        </div>
+      </div>
+
+      ${hasInfinite && !isPaid ? `
+        <div style="margin-top:10px; padding:8px 12px; background:rgba(255,92,92,.08); border:1px solid rgba(255,92,92,.2); border-radius:6px; font-size:12px; color:var(--danger);">
+          ⚠️ A parcela atual não cobre os juros mensais. Aumente a parcela para quitar esta dívida.
+        </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ─── COMPARAÇÃO ───────────────────────────────────────────────────
+function renderComparison(extra) {
+  const container = document.getElementById('compareSection');
+  if (debts.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state" style="padding:40px 16px">
+        <div class="empty-icon">📊</div>
+        <div class="empty-title">Sem dados ainda</div>
+        <div class="empty-desc">Adicione suas dívidas para ver a comparação.</div>
+      </div>`;
+    return;
+  }
+
+  const av = simulateCascade(debts, 'avalanche', extra);
+  const sn = simulateCascade(debts, 'snowball',  extra);
+
+  const avWinsInterest = isFinite(av.totalInterest) && av.totalInterest <= sn.totalInterest;
+  const avWinsTime     = isFinite(av.months)        && av.months <= sn.months;
+
+  container.innerHTML = `
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Critério</th>
+          <th>🌋 Avalanche</th>
+          <th>⛄ Bola de Neve</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Tempo total</td>
+          <td style="color:${avWinsTime?'var(--accent)':'var(--text2)'}">
+            ${monthsToText(av.months)}
+            ${avWinsTime ? '<span class="tag-winner">MELHOR</span>' : ''}
+          </td>
+          <td style="color:${!avWinsTime?'var(--accent)':'var(--text2)'}">
+            ${monthsToText(sn.months)}
+            ${!avWinsTime ? '<span class="tag-winner">MELHOR</span>' : ''}
+          </td>
+        </tr>
+        <tr>
+          <td>Juros totais</td>
+          <td style="color:${avWinsInterest?'var(--accent)':'var(--text2)'}">
+            ${isFinite(av.totalInterest)?fmt(av.totalInterest):'∞'}
+            ${avWinsInterest ? '<span class="tag-winner">MELHOR</span>' : ''}
+          </td>
+          <td style="color:${!avWinsInterest?'var(--accent)':'var(--text2)'}">
+            ${isFinite(sn.totalInterest)?fmt(sn.totalInterest):'∞'}
+            ${!avWinsInterest ? '<span class="tag-winner">MELHOR</span>' : ''}
+          </td>
+        </tr>
+        <tr>
+          <td>Economia vs outro</td>
+          <td style="color:${avWinsInterest?'var(--accent)':'var(--text3)'}">
+            ${avWinsInterest && isFinite(sn.totalInterest-av.totalInterest) ? fmt(sn.totalInterest-av.totalInterest) : '—'}
+          </td>
+          <td style="color:${!avWinsInterest?'var(--accent)':'var(--text3)'}">
+            ${!avWinsInterest && isFinite(av.totalInterest-sn.totalInterest) ? fmt(av.totalInterest-sn.totalInterest) : '—'}
+          </td>
+        </tr>
+        <tr>
+          <td>Motivação</td>
+          <td style="color:var(--gold)">💰 Mais econômico</td>
+          <td style="color:#4d9fff">🎯 Mais motivador</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="margin-top:14px; padding:12px 14px; background:var(--surface2); border-radius:8px; font-size:13px; color:var(--text2);">
+      <strong style="color:var(--accent)">💡 Recomendação:</strong>
+      ${avWinsInterest
+        ? `O método <strong style="color:var(--gold)">Avalanche</strong> economiza mais dinheiro em juros. Use-o se sua prioridade é economizar ao máximo.`
+        : `O método <strong style="color:#4d9fff">Bola de Neve</strong> tem resultado similar em juros mas oferece mais vitórias rápidas para manter a motivação.`}
+    </div>`;
+}
+
+// ─── GRÁFICO DE BARRAS ────────────────────────────────────────────
+function renderChart() {
+  const container = document.getElementById('chartSection');
+  const sorted    = sortedDebts(method, debts).filter(d => d.balance > 0);
+
+  if (sorted.length === 0) {
+    container.innerHTML = `<div style="font-size:13px; color:var(--text3); text-align:center; padding:20px 0">Sem dívidas ativas para exibir.</div>`;
+    return;
+  }
+
+  const calcs = sorted.map(d => calcDebt(d.balance, d.rate, d.installment));
+  const maxMonths = Math.max(...calcs.map(c => isFinite(c.months) ? c.months : 0), 1);
+
+  container.innerHTML = sorted.map((d, i) => {
+    const m   = calcs[i];
+    const pct = isFinite(m.months) ? Math.max(4, (m.months / maxMonths) * 100) : 100;
+    const isGold = method === 'snowball';
+    return `
+      <div class="chart-row">
+        <div class="chart-name" title="${d.name}">${d.name}</div>
+        <div class="chart-track">
+          <div class="chart-bar ${isGold?'':'gold'}" style="width:${pct}%">
+            ${pct > 20 ? fmt(d.balance) : ''}
+          </div>
+        </div>
+        <div class="chart-months">${isFinite(m.months) ? monthsToText(m.months) : '∞'}</div>
+      </div>`;
+  }).join('');
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────
+function showToast(msg, type = 'success') {
+  const icons = { success:'✅', error:'❌', warn:'⚠️', info:'ℹ️' };
+  const container = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = `toast ${type === 'success' ? '' : type}`;
+  el.innerHTML = `<span>${icons[type]||'✅'}</span> <span>${msg}</span>`;
+  container.appendChild(el);
+  setTimeout(() => {
+    el.style.animation = 'slideOut .3s ease forwards';
+    setTimeout(() => el.remove(), 300);
+  }, 3500);
+}
+
+// ─── CONFIRM DIALOG ────────────────────────────────────────────────
+function showConfirm(body, onOk) {
+  document.getElementById('confirmBody').innerHTML = body;
+  document.getElementById('confirmOkBtn').onclick = () => { onOk(); closeConfirm(); };
+  document.getElementById('confirmModal').classList.remove('hidden');
+}
+function closeConfirm() {
+  document.getElementById('confirmModal').classList.add('hidden');
+}
+
+// ─── CELEBRAÇÃO ───────────────────────────────────────────────────
+function celebrate() {
+  const el = document.getElementById('celebration');
+  el.classList.remove('hidden');
+  // confetti
+  const colors = ['#00c896','#f0b429','#4d9fff','#ff5c5c','#a47fff'];
+  for (let i = 0; i < 30; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-particle';
+    p.style.cssText = `
+      left:${20+Math.random()*60}vw;
+      top:${20+Math.random()*30}vh;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      animation-delay:${Math.random()*.4}s;
+      animation-duration:${1.2+Math.random()*.4}s;
+    `;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 2000);
+  }
+  setTimeout(() => el.classList.add('hidden'), 1800);
+}
+
+// ─── FECHAR MODAIS CLICANDO FORA ──────────────────────────────────
+document.getElementById('confirmModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeConfirm();
+});
+document.getElementById('editModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeEdit();
+});
+
+// ─── DETECTAR DÍVIDA RECÉM-QUITADA (para celebração) ─────────────
+let prevPaidIds = new Set();
+function checkNewlyPaid() {
+  const nowPaid = new Set(debts.filter(d => d.balance <= 0).map(d => d.id));
+  for (const id of nowPaid) {
+    if (!prevPaidIds.has(id)) { celebrate(); break; }
+  }
+  prevPaidIds = nowPaid;
+}
+
+// ─── OVERRIDE save() para checar quitação ─────────────────────────
+const _save = save;
+// (ja coberto no fluxo: checkNewlyPaid é chamada em renderAll após save)
+
+// ─── INIT ─────────────────────────────────────────────────────────
+function init() {
+  load();
+  setMotivation();
+  // Atualiza frase motivacional a cada 60s
+  setInterval(setMotivation, 60000);
+  renderAll();
+  prevPaidIds = new Set(debts.filter(d => d.balance <= 0).map(d => d.id));
+}
+
+// ─── INTERCEPT renderAll para checar celebração ───────────────────
+const _renderAll = renderAll;
+// Sobrescreve para checar após render
+window.renderAll = function() {
+  const extra = parseFloat(document.getElementById('extraPayment')?.value) || 0;
+  updateDashboard(extra);
+  renderDebtList(extra);
+  renderComparison(extra);
+  renderChart();
+  checkNewlyPaid();
+};
+
+init();
+</script>
+</body>
+</html>
